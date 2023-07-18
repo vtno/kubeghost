@@ -1,0 +1,97 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ghost
+  namespace: default
+  labels:
+    app: ghost
+spec:
+  strategy:
+    type: Recreate
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ghost
+  template:
+    metadata:
+      labels:
+        app: ghost
+    spec:
+      containers:
+        - name: website
+          image: ghost:5.48-alpine
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 2368
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /ghost/api/admin/site/
+              port: http
+              httpHeaders:
+              - name: X-Forwarded-Proto
+                value: https
+          livenessProbe:
+            initialDelaySeconds: 60
+            httpGet:
+              path: /ghost/api/admin/site/
+              port: http
+              httpHeaders:
+              - name: X-Forwarded-Proto
+                value: https
+          resources:
+            requests:
+              memory: '128Mi'
+              cpu: '100m'
+            limits:
+              memory: '256Mi'
+              cpu: '150m'
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: database__client
+              value: mysql
+            - name: database__connection__host
+              value: your-mysql.host.com
+            - name: database__connection__user
+              valueFrom:
+                secretKeyRef:
+                  name: ghost
+                  key: mysql_username
+            - name: database__connection__password
+              valueFrom:
+                secretKeyRef:
+                  name: ghost
+                  key: mysql_password
+            - name: database__connection__database
+              value: <your-database-name>
+            - name: logging__transports
+              value: '["stdout"]'
+            - name: logging__level
+              value: info
+            - name: url
+              value: <https://your-host-name.domain.com>
+            - name: mail__transport
+              value: SMTP
+            - name: mail__options__service
+              value: Mailgun
+            - name: mail__options__auth__user
+              valueFrom:
+                secretKeyRef:
+                  name: ghost
+                  key: smtp_username
+            - name: mail__options__auth__pass
+              valueFrom:
+                secretKeyRef:
+                  name: ghost
+                  key: smtp_password
+          volumeMounts:
+          - name: ghost
+            mountPath: /var/lib/ghost/content
+
+      volumes:
+        - name: ghost
+          persistentVolumeClaim:
+            claimName: ghost

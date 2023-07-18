@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prd
+    nginx.ingress.kubernetes.io/cors-allow-headers: DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,User-Token,Counselor-Token,X-Requested-With,X-Requested
+    nginx.ingress.kubernetes.io/auth-always-set-cookie: 'true'
+    nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
+    nginx.ingress.kubernetes.io/proxy-body-size: 200m
+  name: ghost
+spec:
+  tls:
+  - hosts:
+    - myghost.com
+    secretName: ghost-ingress
+  rules:
+  - host: myghost.com
+    http:
+      paths:
+      - path: "/"
+        pathType: Prefix
+        backend:
+          service:
+            name: ghost
+            port:
+              number: 80
+  ingressClassName: nginx
